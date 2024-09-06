@@ -3,3 +3,5 @@ torch
 torchvision 
 git+https://github.com/mhamilton723/FeatUp.git
 
+umap-learn
+
