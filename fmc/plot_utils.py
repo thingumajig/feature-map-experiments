@@ -32,15 +32,20 @@ def display_image_grid(flat_images, grid_size, figsize=(12, 12)):
     :param figsize: Размер фигуры.
     """
     num_rows, num_cols = grid_size
+
+    # grid = plt.GridSpec(num_rows, num_cols, wspace=0.0, hspace=0.0)
+
+
     fig, axes = plt.subplots(num_rows, num_cols, figsize=figsize)
-    
+    plt.subplots_adjust(wspace=0.2, hspace=0)
+
     for i, ax in enumerate(axes.flat):
         if i < len(flat_images):
-            ax.imshow(flat_images[i])
             ax.axis('off')
+            ax.imshow(flat_images[i])
         else:
             ax.axis('off')
 
-    # plt.tight_layout(h_pad=0.001, w_pad=0.2)
-    plt.subplots_adjust(wspace=0.1, hspace=0)
+    plt.tight_layout(h_pad=0., w_pad=0.2)
+
     plt.show()
