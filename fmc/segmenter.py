@@ -9,6 +9,8 @@ import torch.nn.functional as F
 from PIL import Image
 from featup.util import norm, unnorm
 
+import umap
+
 
 use_norm = True
 transform = T.Compose([
@@ -50,3 +52,50 @@ def mass_upsample(upsampler, flat_patches_mat, batch_size=4, device='cuda'):
     print(f'{lr_feats_list.shape=}  {hr_feats_list.shape=}')
 
     return lr_feats_list, hr_feats_list
+
+
+
+def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=40):
+    device = image_feats_list[0].device
+
+    def flatten(tensor, target_size=None):
+        if target_size is not None and fit_umap is None:
+            tensor = F.interpolate(
+                tensor, (target_size, target_size), mode="bilinear")
+        B, C, H, W = tensor.shape
+        return tensor.permute(1, 0, 2, 3).reshape(C, B * H * W).permute(1, 0).detach().cpu()
+
+    if len(image_feats_list) > 1 and fit_umap is None:
+        target_size = image_feats_list[0].shape[2]
+    else:
+        target_size = None
+
+    flattened_feats = []
+    for feats in image_feats_list:
+        flattened_feats.append(flatten(feats, target_size))
+    x = torch.cat(flattened_feats, dim=0)
+
+    # Subsample the data if max_samples is set and the number of samples exceeds max_samples
+    if max_samples is not None and x.shape[0] > max_samples:
+        indices = torch.randperm(x.shape[0])[:max_samples]
+        x = x[indices]
+
+    print(f'umap fit: {x.shape=}')
+    if fit_umap is None:
+        fit_umap = umap.UMAP(n_components=dim, 
+                            #  random_state=42, 
+                             n_jobs=n_jobs).fit(x)
+
+    reduced_feats = []
+    for feats in image_feats_list:
+        x_red = fit_umap.transform(flatten(feats))
+        if isinstance(x_red, np.ndarray):
+            x_red = torch.from_numpy(x_red)
+        x_red -= x_red.min(dim=0, keepdim=True).values
+        x_red /= x_red.max(dim=0, keepdim=True).values
+        B, C, H, W = feats.shape
+        reduced_feats.append(
+            x_red.reshape(B, H, W, dim).permute(0, 3, 1, 2).to(device)
+            )
+
+    return reduced_feats, fit_umap

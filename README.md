@@ -5,6 +5,8 @@
 pip install git+https://github.com/mhamilton723/FeatUp.git
 pip install pip install git+https://github.com/mhamilton723/CLIP.git
 
+apt-get install python3-opencv
+
 
 pip install --extra-index-url=https://pypi.nvidia.com cuml-cu12==24.8.* 
 
