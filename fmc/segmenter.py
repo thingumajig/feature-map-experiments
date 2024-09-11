@@ -9,6 +9,7 @@ import torch.nn.functional as F
 from PIL import Image
 from featup.util import norm, unnorm
 
+import numpy as np
 import umap
 
 
@@ -84,7 +85,8 @@ def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=40)
     if fit_umap is None:
         fit_umap = umap.UMAP(n_components=dim, 
                             #  random_state=42, 
-                             n_jobs=n_jobs).fit(x)
+                             n_jobs=n_jobs, verbose=True,
+                             ).fit(x)
 
     reduced_feats = []
     for feats in image_feats_list:
