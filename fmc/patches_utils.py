@@ -1,3 +1,4 @@
+import torchvision.transforms as transforms
 from PIL import Image
 import numpy as np
 
@@ -89,7 +90,7 @@ def extract_patches_pillow_matrix(image: Image, patch_size, step):
 
 def assemble_image(patches, patches_shape):
     # Определяем размеры патча (предполагается, что все патчи одинакового размера)
-    patch_width, patch_height, _ = patches[0].shape
+    _, patch_width, patch_height = patches[0].shape
     n_rows, n_columns = patches_shape
     # Создаем новое изображение с размерами, равными размеру всего изображения
     assembled_image = Image.new(
@@ -99,7 +100,7 @@ def assemble_image(patches, patches_shape):
     for i in range(n_rows):
         for j in range(n_columns):
             patch = patches[i * n_columns + j]
-            assembled_image.paste(patch, (j * patch_width, i * patch_height))
+            assembled_image.paste(transforms.ToPILImage('RGB')(patch), (j * patch_width, i * patch_height))
 
     return assembled_image
 
