@@ -56,7 +56,7 @@ def mass_upsample(upsampler, flat_patches_mat, batch_size=4, device='cuda'):
 
 
 
-def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=40):
+def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=60):
     device = image_feats_list[0].device
 
     def flatten(tensor, target_size=None):
