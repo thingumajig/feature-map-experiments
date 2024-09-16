@@ -164,4 +164,4 @@ def kmeans_process(hr_feats_flat, k = 15):
         segmented_feats = kmeans_predict(kmeans, hr_feats)
         all_segmented_feats.append(segmented_feats)
         
-    return all_segmented_feats
+    return all_segmented_feats, centers

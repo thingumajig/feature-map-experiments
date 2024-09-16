@@ -10,6 +10,7 @@ pip install opencv-python
 
 
 pip install --extra-index-url=https://pypi.nvidia.com cuml-cu12==24.8.* 
+pip install hdbscan
 
 # all cu-packages
 pip install \
