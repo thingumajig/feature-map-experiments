@@ -1,5 +1,7 @@
+from pathlib import Path
 import torch
 import torchvision.transforms as T
+
 
 from featup.util import pca, remove_axes
 from featup.featurizers.maskclip.clip import tokenize
@@ -54,9 +56,26 @@ def mass_upsample(upsampler, flat_patches_mat, batch_size=4, device='cuda'):
 
     return lr_feats_list, hr_feats_list
 
+def save_indexes(source_image_key, hr_feats_pca, patches_mat_shape, workspace_dir, method_name='pca', ):
+    indexes_path = workspace_dir / '.indexes'
+    indexes_path.mkdir(parents=True, exist_ok=True)
+
+    current_indexes_path = indexes_path / source_image_key
+    current_indexes_path.mkdir(exist_ok=True)
 
 
-def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=60):
+    _, patch_width, patch_height = hr_feats_pca[0].shape
+    n_rows, n_columns = patches_mat_shape
+    rows = 0 
+    cols = 0
+    for i in range(n_rows):
+        for j in range(n_columns):
+            patch = hr_feats_pca[i * n_columns + j]
+            pi = T.ToPILImage('RGB')(patch)
+            pi.save(current_indexes_path / f'{method_name}_{j*patch_height}_{i*patch_width}.png')
+
+
+def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=70):
     device = image_feats_list[0].device
 
     def flatten(tensor, target_size=None):
@@ -83,6 +102,7 @@ def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=60)
 
     print(f'umap fit: {x.shape=}')
     if fit_umap is None:
+        print('Create new umap')
         fit_umap = umap.UMAP(n_components=dim, 
                             #  random_state=42, 
                              n_jobs=n_jobs, verbose=True,
@@ -101,3 +121,47 @@ def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=60)
             )
 
     return reduced_feats, fit_umap
+
+
+from sklearn.cluster import KMeans
+
+def kmeans_color_quantization(pixel_values, k=3):
+    # Параметры для KMeans
+    kmeans = KMeans(n_clusters=k, random_state=42)
+
+    # Применение KMeans
+    kmeans.fit(pixel_values)
+
+    # Преобразование центров обратно в uint8
+    centers = kmeans.cluster_centers_
+
+    return kmeans, centers
+
+
+def kmeans_predict(kmeans, hr_feats, palette = None):
+    shape = hr_feats.shape
+    feats = hr_feats.reshape((-1, shape[-1]))
+    # print(f'{shape=} {feats.shape=}')
+
+    labels = kmeans.predict(feats)
+    # print(f'{labels.shape=}')
+    centers = kmeans.cluster_centers_
+    if palette is not None:
+        segmented_image = palette[labels.flatten()]
+    else:
+        segmented_image = centers[labels.flatten()]
+    # print(f'{segmented_image.shape=}')
+    segmented_image = segmented_image.reshape((shape[0],shape[1],3))
+    return segmented_image
+
+def kmeans_process(hr_feats_flat, k = 15):
+    all_feats_values = hr_feats_flat.reshape(-1, 3)
+    
+    kmeans, centers = kmeans_color_quantization(all_feats_values, k)
+
+    all_segmented_feats = []
+    for hr_feats in hr_feats_flat:
+        segmented_feats = kmeans_predict(kmeans, hr_feats)
+        all_segmented_feats.append(segmented_feats)
+        
+    return all_segmented_feats
