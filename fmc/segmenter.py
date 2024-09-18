@@ -56,23 +56,22 @@ def mass_upsample(upsampler, flat_patches_mat, batch_size=4, device='cuda'):
 
     return lr_feats_list, hr_feats_list
 
-def save_indexes(source_image_key, hr_feats_pca, patches_mat_shape, workspace_dir, method_name='pca', ):
+def save_indexes(source_image_key, hr_feats_pca, patches_mat_shape, workspace_dir, method_name='pca', mode='RGB'):
     indexes_path = workspace_dir / '.indexes'
     indexes_path.mkdir(parents=True, exist_ok=True)
 
-    current_indexes_path = indexes_path / source_image_key
-    current_indexes_path.mkdir(exist_ok=True)
+    current_indexes_path = indexes_path / source_image_key / method_name
+    current_indexes_path.mkdir(parents=True, exist_ok=True)
 
 
     _, patch_width, patch_height = hr_feats_pca[0].shape
     n_rows, n_columns = patches_mat_shape
-    rows = 0 
-    cols = 0
+
     for i in range(n_rows):
         for j in range(n_columns):
             patch = hr_feats_pca[i * n_columns + j]
-            pi = T.ToPILImage('RGB')(patch)
-            pi.save(current_indexes_path / f'{method_name}_{j*patch_height}_{i*patch_width}.png')
+            pi = T.ToPILImage(mode)(patch)
+            pi.save(current_indexes_path / f'{j*patch_height}_{i*patch_width}.png')
 
 
 def umap_fl(image_feats_list, dim=3, fit_umap=None, max_samples=None, n_jobs=70):
