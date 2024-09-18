@@ -56,7 +56,7 @@ def mass_upsample(upsampler, flat_patches_mat, batch_size=4, device='cuda'):
 
     return lr_feats_list, hr_feats_list
 
-def save_indexes(source_image_key, hr_feats_pca, patches_mat_shape, workspace_dir, method_name='pca', mode='RGB'):
+def save_indexes(source_image_key, hr_feats, patches_mat_shape, workspace_dir, method_name='pca', mode='RGB', patch_size=(256, 256)):
     indexes_path = workspace_dir / '.indexes'
     indexes_path.mkdir(parents=True, exist_ok=True)
 
@@ -64,12 +64,14 @@ def save_indexes(source_image_key, hr_feats_pca, patches_mat_shape, workspace_di
     current_indexes_path.mkdir(parents=True, exist_ok=True)
 
 
-    _, patch_width, patch_height = hr_feats_pca[0].shape
+    # _, patch_width, patch_height = hr_feats_pca[0].shape
+    patch_width, patch_height = patch_size
+
     n_rows, n_columns = patches_mat_shape
 
     for i in range(n_rows):
         for j in range(n_columns):
-            patch = hr_feats_pca[i * n_columns + j]
+            patch = hr_feats[i * n_columns + j]
             pi = T.ToPILImage(mode)(patch)
             pi.save(current_indexes_path / f'{j*patch_height}_{i*patch_width}.png')
 
