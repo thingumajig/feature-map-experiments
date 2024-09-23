@@ -18,8 +18,10 @@ n_cols = 8
 n_rows = 5
 patch_size = 224
 
+white_patch = Image.new('RGB', (patch_size, patch_size), color=(255, 255, 255))
+
 viewport_width = 1600
-viewport_height = 890
+viewport_height = 1000
 
 # num_patches_x = width // patch_size
 # num_patches_y = height // patch_size
@@ -47,12 +49,16 @@ methods = ['pca', 'umap', 'kmeans-pca', 'kmeans-umap', 'hdbscan']
 async def get_patch(x: int, y: int):
     try:
         # image_data = get_current_image()
-        image_key = app.storage.user.get('image_key', 'c17-part1')
+        image_key = app.storage.user.get('image_key', 'C-17-036-2021-07-15_215134__ndpi')
         # print(f'get patch from original image: {x} {y}')
         orig_image_path = image_index_root / image_key / 'original' / f'{x}_{y}.png'
         # print(f'{orig_image_path.exists()=}')
-        # patch = image_data.image.crop((x, y, x + patch_size, y + patch_size))
-        patch = Image.open(orig_image_path).convert('RGB')
+
+        if orig_image_path.exists():
+            # patch = image_data.image.crop((x, y, x + patch_size, y + patch_size))
+            patch = Image.open(orig_image_path).convert('RGB')
+        else:
+            patch = white_patch
 
         buff = io.BytesIO()
         patch.save(buff, format='PNG')
@@ -134,7 +140,7 @@ def load_p_patch_svg(method, x, y, origin_x, origin_y):
 
 def get_svg(x1: int, y1: int, x2: int, y2: int):
     # print(f'get svg: {x1=} {y1=} {x2=} {y2=}')
-    pca_flag = app.storage.user.get('draw_pca', False)
+    # pca_flag = app.storage.user.get('draw_pca', False)
     # print(f'pca flag: {pca_flag}')
 
     gridx = int(x1 // patch_size) * patch_size
@@ -177,7 +183,7 @@ def update_user_view_state(mouse_down=True, pan_start=None, current_image_corner
 
 def mouse_handler(e: MouseEventArguments):
     # image_data = get_current_image()
-    width, height = (n_cols * patch_size, n_rows * patch_size)
+    # width, height = (n_cols * patch_size, n_rows * patch_size)
 
     if e.type == 'mousedown':
         update_user_view_state(
@@ -194,8 +200,8 @@ def mouse_handler(e: MouseEventArguments):
         x = max(x-delta_x, 0)
         y = max(y-delta_y, 0)
 
-        x = min(x, width-viewport_width)
-        y = min(y, height-viewport_height)
+        # x = min(x, width-viewport_width)
+        # y = min(y, height-viewport_height)
 
         # print(f'{e.type}: {delta_x=} {delta_y=} {x=} {y=}')
         update_user_view_state(mouse_down=(e.type == 'mousemove'), pan_start=(
@@ -265,8 +271,8 @@ async def main_page():
                 ui.label('Opacity:')
                 slider = ui.slider(min=0., max=1., value=0.5, step=0.1, on_change=lambda e: update_pca_draw(
                     e.value, viewer)).bind_value(app.storage.user, f'{m}_opacity')
-    with ui.footer().style('background-color: #3874c8; height: 30px').classes('items-center justify-between'):
-        ui.label('ok.')
+    with ui.footer().style('background-color: #3874c8; height: 40px;').classes('items-center justify-between'):
+        ui.label('ok.').bind_text_from(app.storage.user,'current_image_corner', backward=lambda c: f'Pos: x={c[0]}, y={c[1]}')
 
 
 
