@@ -24,10 +24,16 @@ def patch_generator(start, end, size, patch_size, step = None):
     start_x, start_y = start
     end_x, end_y = end
 
-    for y in range(start_y, min(end_y, height - patch_height + 1), step_y):
-        for x in range(start_x, min(end_x, width - patch_width + 1), step_x):
-            yield (x, y, x+patch_width, y+patch_height)
+    # print(f'{start=}, {end=}, {size=}, {patch_size=}, {step=}')
+    grid_x = 0
+    grid_y = 0
 
+    for y in range(start_y, min(end_y, height - patch_height + 1), step_y):
+        grid_x = 0
+        for x in range(start_x, min(end_x, width - patch_width + 1), step_x):
+            yield (x, y, grid_x, grid_y)
+            grid_x += 1
+        grid_y += 1
 
 class CachcedFileIndex:
 
@@ -113,12 +119,15 @@ class OpenSlideWSIDriver(WSIDriver):
             d = {k: v for k,v in slide.properties.items()}
             yaml.dump(d, yaml_file)      
 
-    def generate_patches(self, wsi_file_name):
+    def generate_patches(self, wsi_file_name, start=(0, 0), end=None):
         slide = openslide.OpenSlide(str(self.original_files_path / wsi_file_name))
         width, height = slide.level_dimensions[0]
 
+        if end is None:
+            end = (width, height)
+
         (self.file_index.get_wsi_stuff_path(wsi_file_name) / 'original').mkdir(exist_ok=True)
-        threshold = 10.
+        threshold = 0. # 0 -> не отсеивать
         cc = 0
         cc_d = 0
         total = 0
@@ -126,19 +135,20 @@ class OpenSlideWSIDriver(WSIDriver):
         # read_region читает в координатах 0 уровня WSI, но возвращает изображение размера patch_size для указанного magnification
         step_x = self.patch_size[0] * self.basic_slide_magnification * 2
         step_y = self.patch_size[1] * self.basic_slide_magnification * 2
-        print(f'{width=}, {height=}, cols: {width//step_x} rows: {height//step_y}')
+        print(f'{width=}, {height=}, cols: {width//step_x} rows: {height//step_y} {step_x=}, {step_y=} {self.basic_slide_magnification=}')
 
-        start = (30000+1000*3, 55000)
+        # start = (30000+1000*3, 55000)
         # end=(width, height)
-        end=(start[0]+500, start[1]+500)
+        # end=(start[0]+3000, start[1]+3000)
 
-        for r in patch_generator(start=start, end=(width, height), size=(width, height), patch_size=self.patch_size, step = (step_x, step_y)):
+        for r in patch_generator(start=start, end=end, size=(width, height), patch_size=self.patch_size, step = (step_x, step_y)):
             patch = slide.read_region(r[:2], self.basic_slide_magnification, self.patch_size)
 
             _, _, is_blank = detect_blank_patch(np.array(patch), threshold=threshold)
             if not is_blank:
-                patch.save(self.file_index.get_index_path(wsi_file_name, 'original', r[0]-start[0], r[1]-start[1]))
+                patch.save(self.file_index.get_index_path(wsi_file_name, 'original', r[2]*self.patch_size[0], r[3]*self.patch_size[1]))
                 cc += 1
+                # print(f'{r}')
             else:
                 cc_d += 1
             total+=1

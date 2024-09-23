@@ -18,7 +18,7 @@ n_cols = 8
 n_rows = 5
 patch_size = 224
 
-white_patch = Image.new('RGB', (patch_size, patch_size), color=(255, 255, 255))
+white_patch = Image.new('RGB', (patch_size, patch_size), color=(241, 241, 249))   #(255, 255, 255))
 
 viewport_width = 1600
 viewport_height = 1000
@@ -56,16 +56,21 @@ async def get_patch(x: int, y: int):
 
         if orig_image_path.exists():
             # patch = image_data.image.crop((x, y, x + patch_size, y + patch_size))
-            patch = Image.open(orig_image_path).convert('RGB')
+            # patch = Image.open(orig_image_path).convert('RGB')
+
+            with orig_image_path.open('rb') as f:
+                buff = io.BytesIO()
+                buff.write(f.read())
+                buff.seek(0)
         else:
             patch = white_patch
+            buff = io.BytesIO()
+            patch.save(buff, format='PNG')
+            buff.seek(0)
 
-        buff = io.BytesIO()
-        patch.save(buff, format='PNG')
-        buff.seek(0)
         # print(f'load original image: {x} {y}')
         return StreamingResponse(content=buff, media_type='image/png',
-                                 headers={'Cache-Control': 'max-age=600'}
+                                #  headers={'Cache-Control': 'max-age=600'}
                                  )
     except Exception as e:
         print(f'File "original/{x}_{y}" not found?')
@@ -88,24 +93,32 @@ async def get_patch(x: int, y: int):
          )
 async def get_processed_patch(method: str, x: int, y: int):
     try:
-        image_key = app.storage.user.get('image_key', 'c17-part1')
+        image_key = app.storage.user.get('image_key', 'C-17-036-2021-07-15_215134__ndpi')
         # print(f'get pca patch from original image: {x} {y}')
-        x = (x // patch_size) * method_patch_size
-        y = (y // patch_size) * method_patch_size
+        # x = (x // patch_size) * method_patch_size
+        # y = (y // patch_size) * method_patch_size
         # print(f'{x=} {y=}')
 
         method_image_path = image_index_root / image_key / method / f'{x}_{y}.png'
         # print(f'{method_image_path.exists()=}')
-        patch = Image.open(method_image_path).convert('RGBA')
-        buff = io.BytesIO()
-        patch.save(buff, format='PNG')
-        buff.seek(0)
+
+        with method_image_path.open('rb') as f:
+            buff = io.BytesIO()
+            buff.write(f.read())
+            buff.seek(0)
+        
+        # patch = Image.open(method_image_path).convert('RGBA')
+        # buff = io.BytesIO()
+        # patch.save(buff, format='PNG')
+        # buff.seek(0)
+        
+        
         # print(f'load pca image: {x} {y}')
         return StreamingResponse(content=buff, media_type='image/png',
                                  headers={'Cache-Control': 'max-age=600'}
                                  )
     except Exception as e:
-        print(f'File "{method}/{x}_{y}" not found?')
+        print(f'File "{image_key}/{method}/{x}_{y}" not found?')
         # traceback.print_exc()
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -263,14 +276,15 @@ async def main_page():
     # with ui.left_drawer(top_corner=True, bottom_corner=True).style('background-color: #d7e3f4'):
     #     ui.label('LEFT DRAWER')
     with ui.right_drawer(fixed=False).style('background-color: #ebf1fa').props('bordered') as right_drawer:
-        ui.label('<Tasks>')
 
-        for m in methods:
-            fm = ui.checkbox(f'Draw heatmap ({m})', on_change=lambda e: update_pca_draw(e.value, viewer)).bind_value(app.storage.user, f'draw_{m}')
-            with ui.grid(columns='60px 90px').classes('w-full').bind_visibility_from(fm, 'value'):
-                ui.label('Opacity:')
-                slider = ui.slider(min=0., max=1., value=0.5, step=0.1, on_change=lambda e: update_pca_draw(
-                    e.value, viewer)).bind_value(app.storage.user, f'{m}_opacity')
+        with ui.expansion('Tasks', icon='precision_manufacturing', value=True).classes('w-full'):
+            for m in methods:
+                fm = ui.checkbox(f'Draw heatmap ({m})', on_change=lambda e: update_pca_draw(e.value, viewer)).bind_value(app.storage.user, f'draw_{m}')
+                with ui.grid(columns='60px 90px').classes('w-full').bind_visibility_from(fm, 'value'):
+                    ui.label('Opacity:')
+                    slider = ui.slider(min=0., max=1., value=0.5, step=0.1, on_change=lambda e: update_pca_draw(
+                        e.value, viewer)).bind_value(app.storage.user, f'{m}_opacity')
+                    
     with ui.footer().style('background-color: #3874c8; height: 40px;').classes('items-center justify-between'):
         ui.label('ok.').bind_text_from(app.storage.user,'current_image_corner', backward=lambda c: f'Pos: x={c[0]}, y={c[1]}')
 
