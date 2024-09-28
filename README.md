@@ -16,6 +16,7 @@ pip install hdbscan
 pip install s3fs
 pip install boto3
 
+pip install scikit-image
 
 # OpenSlide
 # apt install openslide-tools

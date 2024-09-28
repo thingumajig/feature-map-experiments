@@ -104,3 +104,24 @@ def assemble_image(patches, patches_shape):
 
     return assembled_image
 
+
+
+def combine_patches(index_root, wsi_file_name, method, start, magnification, patch_size):
+    wsi_stuff_path = index_root / wsi_file_name
+    method_index_path = wsi_stuff_path / method
+
+    x, y = start
+    patch_width, patch_height = patch_size
+
+    new_magnified_image = Image.new('RGB', (patch_width, patch_height), color=(241, 241, 249))
+
+    for pyi in range(0, magnification, 1):
+        for pxj in range(0, magnification, 1): 
+            patch_file = method_index_path / f'{x+pxj*patch_width}_{y+pyi*patch_height}.png'
+            # print(f'[{pxj}, {pyi}]: ({patch_file}) ')
+            if patch_file.exists():
+                patch = Image.open(patch_file)
+                patch = patch.resize((patch_width // magnification, patch_height // magnification), resample=Image.LANCZOS)
+                new_magnified_image.paste(patch, (pxj*patch_width // magnification, pyi*patch_height // magnification))
+
+    return new_magnified_image
