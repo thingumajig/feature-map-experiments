@@ -197,7 +197,7 @@ def load_patch_svg(x, y, origin_x, origin_y, magnification):
     data_uri = f'/p/{x}/{y}/{magnification}'
 
     # print(f'image: {left} {top} {right} {bottom}')
-    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size}" height="{patch_size}"  xlink:href="{data_uri}" />' #style="outline: 1px solid black;"
+    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size+1}" height="{patch_size+1}"  xlink:href="{data_uri}" />' #style="outline: 1px solid black;"
 
 
 def load_p_patch_svg(method, x, y, origin_x, origin_y, magnification):
@@ -205,7 +205,7 @@ def load_p_patch_svg(method, x, y, origin_x, origin_y, magnification):
     data_uri = f'/x/{method}/{x}/{y}/{magnification}'
 
     # print(f'image: {left} {top} {right} {bottom}')
-    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size}" height="{patch_size}" xlink:href="{data_uri}" opacity="{opacity}"/>'
+    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size+1}" height="{patch_size+1}" xlink:href="{data_uri}" opacity="{opacity}"/>'
 
 def get_svg(origin_x: int, origin_y: int, x2: int, y2: int, magnification: int=1):
     # print(f'svg from:{context} {origin_x=} {origin_y=} {x2=} {y2=}')
@@ -314,7 +314,7 @@ def wheel_handler(e: GenericEventArguments):
     if e.args['deltaY']<0:
         magnification = max(magnification-1, 1)
     elif e.args['deltaY']>0:
-        magnification = min(magnification+1, 10)
+        magnification = min(magnification+1, 12)
 
     x = max(int(orig_x / magnification - viewport_width/2),0)
     y = max(int(orig_y / magnification - viewport_height/2),0)

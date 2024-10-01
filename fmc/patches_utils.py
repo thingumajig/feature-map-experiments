@@ -124,7 +124,7 @@ def combine_patches(index_root, wsi_file_name, method, start, magnification, pat
             # print(f'[{pxj}, {pyi}]: ({patch_file}) ')
             if patch_file.exists():
                 patch = Image.open(patch_file)
-                patch = patch.resize((patch_width // magnification, patch_height // magnification), resample=Image.LANCZOS)
+                patch = patch.resize((patch_width // magnification+1, patch_height // magnification+1), resample=Image.LANCZOS)
                 new_magnified_image.paste(patch, (pxj*patch_width // magnification, pyi*patch_height // magnification))
 
     return new_magnified_image
