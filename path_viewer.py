@@ -19,8 +19,8 @@ import yaml
 from fmc.patches_utils import combine_patches
 
 
-n_cols = 8
-n_rows = 5
+# n_cols = 8
+# n_rows = 5
 patch_size = 224
 
 white_patch = Image.new('RGB', (patch_size, patch_size), color=(241, 241, 249))   #(255, 255, 255))
@@ -145,7 +145,7 @@ async def get_processed_patch(method: str, x: int, y: int):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-def load_patch_svg(x, y, origin_x, origin_y, magnification, patch_index_x, patch_index_y):
+def load_patch_svg(x, y, origin_x, origin_y, magnification):
 
     # right = left + patch_size
     # bottom = top + patch_size
@@ -155,61 +155,67 @@ def load_patch_svg(x, y, origin_x, origin_y, magnification, patch_index_x, patch
     # patch_bytes = patch_bytes.getvalue()
     # data_uri = 'data:image/png;base64,' + \
     #     base64.b64encode(patch_bytes).decode('utf-8')
-    data_uri = f'/p/{patch_index_x}/{patch_index_y}/{magnification}'
+    data_uri = f'/p/{x}/{y}/{magnification}'
 
     # print(f'image: {left} {top} {right} {bottom}')
-    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size}" height="{patch_size}" xlink:href="{data_uri}" />'
+    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size}" height="{patch_size}"  xlink:href="{data_uri}" />' #style="outline: 1px solid black;"
 
 
 def load_p_patch_svg(method, x, y, origin_x, origin_y):
-    left = x
-    top = y
+
     opacity = app.storage.user.get(f'{method}_opacity', 0.5)
     data_uri = f'/x/{method}/{x}/{y}'
 
     # print(f'image: {left} {top} {right} {bottom}')
-    return f'<image x="{left-origin_x}" y="{top-origin_y}" width="{patch_size}" height="{patch_size}" xlink:href="{data_uri}" opacity="{opacity}"/>'
+    return f'<image x="{x-origin_x}" y="{y-origin_y}" width="{patch_size}" height="{patch_size}" xlink:href="{data_uri}" opacity="{opacity}"/>'
 
 def get_svg(context, origin_x: int, origin_y: int, x2: int, y2: int, magnification: int=1):
     # print(f'svg from:{context} {origin_x=} {origin_y=} {x2=} {y2=}')
     # pca_flag = app.storage.user.get('draw_pca', False)
     # print(f'pca flag: {pca_flag}')
-    w_patch_size = patch_size * magnification
+    # w_patch_size = patch_size * magnification
 
 
-    grid_aligned_origin_x = int(origin_x // w_patch_size) * w_patch_size
-    grid_aligned_origin_y = int(origin_y // w_patch_size) * w_patch_size
+    grid_aligned_origin_x = int(origin_x // patch_size) * patch_size
+    grid_aligned_origin_y = int(origin_y // patch_size) * patch_size
 
-    px_start = grid_aligned_origin_x
-    py_start = grid_aligned_origin_y
+    # px_start = grid_aligned_origin_x
+    # py_start = grid_aligned_origin_y
     # if abs(grid_aligned_origin_x-origin_x) > patch_size:
-    #     grid_aligned_origin_x += w_patch_size
-    #     px_start += patch_size
+    #     grid_aligned_origin_x += patch_size
+    #     px_start += w_patch_size
+    #     print('fix!')
     # if abs(grid_aligned_origin_y-origin_y) > patch_size:
-    #     grid_aligned_origin_y += w_patch_size
-    #     py_start += patch_size
+    #     grid_aligned_origin_y += patch_size
+    #     py_start += w_patch_size
 
 
     # deltax = origin_x - grid_aligned_origin_x
     # deltay = origin_y - grid_aligned_origin_y
-    print(f'{grid_aligned_origin_x}-{origin_x}={grid_aligned_origin_x-origin_x} {grid_aligned_origin_y}-{origin_y}={grid_aligned_origin_y-origin_y}')
+    # print(f'{grid_aligned_origin_x}-{origin_x}={grid_aligned_origin_x-origin_x} {grid_aligned_origin_y}-{origin_y}={grid_aligned_origin_y-origin_y}')
 
     svg = f'<svg width="{viewport_width}px" height="{viewport_height}px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
     # svg = f'<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
 
-    patch_index_y = py_start
+    # patch_index_y = py_start
+    # for y in range(grid_aligned_origin_y, y2 + 1, patch_size):
+    #     patch_index_x = px_start
+    #     for x in range(grid_aligned_origin_x, x2 + 1, patch_size):
+    #         svg += load_patch_svg(x, y, origin_x, origin_y, magnification, patch_index_x, patch_index_y)
+    #         for m in methods:
+    #             flag = app.storage.user.get(f'draw_{m}', False)
+    #             if flag:
+    #                 svg += load_p_patch_svg(m, x, y, origin_x, origin_y)
+
+    #         patch_index_x += w_patch_size
+    #     patch_index_y += w_patch_size
     for y in range(grid_aligned_origin_y, y2 + 1, patch_size):
-        patch_index_x = px_start
         for x in range(grid_aligned_origin_x, x2 + 1, patch_size):
-            svg += load_patch_svg(x, y, origin_x, origin_y, magnification, patch_index_x, patch_index_y)
+            svg += load_patch_svg(x, y, origin_x, origin_y, magnification)
             for m in methods:
                 flag = app.storage.user.get(f'draw_{m}', False)
                 if flag:
                     svg += load_p_patch_svg(m, x, y, origin_x, origin_y)
-
-            patch_index_x += w_patch_size
-        patch_index_y += w_patch_size
-
 
     svg += '</svg>'
     return svg
@@ -228,7 +234,7 @@ def update_user_view_state(mouse_down=True, pan_start=None, current_image_corner
 def mouse_handler(e: MouseEventArguments):
     # image_data = get_current_image()
     # width, height = (n_cols * patch_size, n_rows * patch_size)
-
+    app.storage.user['mouse_pos'] = (e.image_x, e.image_y)
     if e.type == 'mousedown':
         update_user_view_state(
             mouse_down=True, pan_start=(e.image_x, e.image_y))
@@ -240,7 +246,7 @@ def mouse_handler(e: MouseEventArguments):
         delta_y = int(e.image_y - pan_start[1])
 
         x, y, magnification = app.storage.user.get('current_image_corner', (5000, 5000, 1))
-        print(f'({delta_x=}, {delta_y=}) ({x=}, {y=}) new: ({x-delta_x},{y-delta_y})')
+        # print(f'({delta_x=}, {delta_y=}) ({x=}, {y=}) new: ({x-delta_x},{y-delta_y})')
 
         x = max(x-delta_x, 0)
         y = max(y-delta_y, 0)
@@ -256,21 +262,29 @@ def mouse_handler(e: MouseEventArguments):
         e.sender.set_content(get_svg('mouse', x, y, x+viewport_width, y+viewport_height, magnification))
     elif e.type == 'mouseleave':
         update_user_view_state(mouse_down=False)
-    elif e.type == 'wheel': 
-        print(f'{e}')
+    # elif e.type == 'wheel': 
+    #     print(f'{e}')
 
 
 def wheel_handler(e: GenericEventArguments):
-    print(f"{e=}, {e.args['deltaY']=}")
+    # print(f"{e=}, {e.args['deltaY']=}")
     x, y, magnification = app.storage.user.get('current_image_corner', (5000, 5000, 1))
+    mouse_x, mouse_y = app.storage.user['mouse_pos']
+    saved_magnification = magnification
+    orig_x = (x+mouse_x) * magnification
+    orig_y = (y+mouse_y) * magnification
     if e.args['deltaY']<0:
         magnification = max(magnification-1, 1)
     elif e.args['deltaY']>0:
-        magnification = min(magnification+1, 5)
+        magnification = min(magnification+1, 10)
 
-    # print(f'{x=} {y=} {magnification=}')
-    update_user_view_state(mouse_down=False, current_image_corner=(x, y, magnification))
-    e.sender.set_content(get_svg('wheel', x, y, x+viewport_width, y+viewport_height, magnification))
+    x = max(int(orig_x / magnification - viewport_width/2),0)
+    y = max(int(orig_y / magnification - viewport_height/2),0)
+
+    if saved_magnification != magnification:
+        # print(f'{x=} {y=} {magnification=}')
+        update_user_view_state(mouse_down=False, current_image_corner=(x, y, magnification))
+        e.sender.set_content(get_svg('wheel', x, y, x+viewport_width, y+viewport_height, magnification))
 
 
 
@@ -339,7 +353,7 @@ async def main_page():
     # .classes('w-64 bg-blue-50')
     # .style('width: 100%; height: 100%; object-fit: cover;')
 
-    # viewer.on('wheel', wheel_handler)
+    viewer.on('wheel', wheel_handler)
  
     with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center justify-between'):
         ui.image('roseaid_logo_white.png').classes('w-32')
@@ -396,7 +410,8 @@ async def main_page():
           
                     
     with ui.footer().style('background-color: #3874c8; height: 40px;').classes('items-center justify-between'):
-        ui.label('ok.').bind_text_from(app.storage.user,'current_image_corner', backward=lambda c: f'Pos: x={c[0]}, y={c[1]} magnification={c[2]}')
+        ui.label('ok.').bind_text_from(app.storage.user,'current_image_corner', backward=lambda c: f'Top Left: x={c[0]}, y={c[1]} magnification={c[2]}')
+        ui.label(' ').bind_text_from(app.storage.user,'mouse_pos', backward=lambda c: f' mouse : x={c[0]:.1f}, y={c[1]:.1f}')
 
 
 

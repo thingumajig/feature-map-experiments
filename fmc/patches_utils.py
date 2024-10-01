@@ -112,6 +112,9 @@ def combine_patches(index_root, wsi_file_name, method, start, magnification, pat
 
     x, y = start
     patch_width, patch_height = patch_size
+    
+    x = x*magnification
+    y = y*magnification
 
     new_magnified_image = Image.new('RGB', (patch_width, patch_height), color=(241, 241, 249))
 
